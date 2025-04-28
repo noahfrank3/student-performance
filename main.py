@@ -16,16 +16,25 @@ def correlation_plot(data, subject_name, grade_num):
     ax.scatter(data['absences'], data[f'G{grade_num}'], s=20, color='dodgerblue', zorder=3)
     ax.set_xlabel("Number of Absences", fontsize='large')
     ax.set_ylabel(f"Grade (G{grade_num})", fontsize='large')
-    ax.set_title(f"Grade vs. Number of Absences, {subject_name.title()}", fontsize='large')
+    ax.set_title(f"Grade G{grade_num} vs. Number of Absences, {subject_name.title()}", fontsize='large')
     ax.grid(True, zorder=0)
     fig.tight_layout()
     fig.savefig(OUT_DIR / f'{subject_name[:4]}_g{grade_num}.svg', bbox_inches='tight')
     plt.close(fig)
 
-rho_math = np.empty(3)
-p_math = np.empty(3)
-rho_port = np.empty(3)
-p_port = np.empty(3)
+def pearsonr_wrapper(data, subject_name, grade_num):
+    x = data['absences']
+    y = data[f'G{grade_num}']
+    print(f"{subject_name.title()}, G{grade_num}")
+
+    rho, p = pearsonr(x, y)
+    print(f"Correlation coefficient: {rho:.3g}")
+    print(f"p-value: {p:.3g}")
+
+    ci = pearsonr(x, y, alternative='two-sided').confidence_interval()
+    print(f"Confidence interval: [{ci.low:.3g}, {ci.high:.3g}]")
+
+    print()
 
 if __name__ == '__main__':
     math_data = pd.read_excel(DATA_DIR / 'student-mat.xlsx')
@@ -33,20 +42,7 @@ if __name__ == '__main__':
     
     for grade_num in range(1, 4):
         correlation_plot(math_data, 'math', grade_num)
-        rho_math[grade_num - 1], p_math[grade_num - 1] = pearsonr(math_data['absences'], math_data[f'G{grade_num}'])
+        pearsonr_wrapper(math_data, 'math', grade_num)
 
         correlation_plot(port_data, 'portuguese', grade_num)
-        rho_port[grade_num - 1], p_port[grade_num - 1] = pearsonr(port_data['absences'], port_data[f'G{grade_num}'])
-
-    corr_data = {
-            'math': {
-                'rho': rho_math,
-                'p': p_math
-            },
-            'port': {
-                'rho': rho_port,
-                'p': p_port
-            }
-    }
-
-    print(corr_data)
+        pearsonr_wrapper(port_data, 'portuguese', grade_num)
